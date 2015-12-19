@@ -1,0 +1,84 @@
+plugins {
+    id 'groovy'
+    id 'idea'
+    id 'com.github.johnrengelman.shadow' version '1.2.2'
+}
+
+repositories {
+    jcenter()
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.9'
+}
+
+sourceCompatibility = 1.8
+
+group = 'org.beryx.viewreka'
+version = '0.1'
+
+def defaultEncoding = 'UTF-8'
+[compileJava, compileTestJava]*.options*.encoding = defaultEncoding
+[compileGroovy, compileTestGroovy]*.options*.encoding = defaultEncoding
+[compileGroovy, compileTestGroovy]*.groovyOptions*.encoding = defaultEncoding
+
+dependencies {
+    compile gradleApi()
+    compile gradleTestKit()
+    compile localGroovy()
+    
+    compile 'com.github.jengelman.gradle.plugins:shadow:1.2.2'
+    
+    testCompile ('org.spockframework:spock-core:1.0-groovy-2.4') {
+        exclude module: 'groovy-all'
+    }
+}
+
+test.dependsOn shadowJar
+
+//###############################################
+// FOR TEST ONLY - DO NOT FORGET TO REMOVE IT ###
+repositories {
+    jcenter()
+
+    flatDir {
+        name "fileRepo"
+        dirs "../viewreka/projects/bundles/repo"
+    }
+    maven {
+        name "myMavenRepo"
+        url uri("../viewreka/projects/bundles/mavenRepo")
+    }
+}
+
+uploadArchives {
+    repositories {
+        // add project.repositories.fileRepo
+        add project.repositories.myMavenRepo
+    }
+}
+//###############################################
+
+
+idea {
+    workspace {
+        iws.withXml { xmlFile ->
+            def runManager = xmlFile.asNode().component.find { it.@name == 'RunManager' }
+            // If not yet available, create a JUnit run configuration for ViewrekaBundlePluginTest
+            def cfgPluginTest = runManager.configuration.find { it.@name == 'ViewrekaBundlePluginTest' && it.@type == 'JUnit' }
+            if (!cfgPluginTest) {
+                def builder = new NodeBuilder()
+                cfgPluginTest = builder.configuration(default: 'false', name: 'ViewrekaBundlePluginTest', type: 'JUnit', factoryName: 'JUnit') {
+                    module(name: 'viewreka-bundle-gradle-plugin')
+                    option(name: 'PACKAGE_NAME', value: 'org.beryx.viewreka.bundle.gradle.plugin')
+                    option(name: 'MAIN_CLASS_NAME', value: 'org.beryx.viewreka.bundle.gradle.plugin.ViewrekaBundlePluginTest')
+                }
+                // Configure the gradle 'shadow' task to be executed before running ViewrekaBundlePluginTest, because the tests require the fat jar in their classpath.
+                cfgPluginTest.append new NodeBuilder().'method' {
+                    option(name: "Gradle.BeforeRunTask", enabled: 'true', tasks: 'shadow', externalProjectPath: '$PROJECT_DIR$')
+                }
+                runManager.append cfgPluginTest
+            }
+        }
+    }
+}
