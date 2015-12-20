@@ -2,6 +2,7 @@ plugins {
     id 'groovy'
     id 'idea'
     id 'com.github.johnrengelman.shadow' version '1.2.2'
+    id "com.gradle.plugin-publish" version "0.9.2"
 }
 
 repositories {
@@ -36,28 +37,19 @@ dependencies {
 
 test.dependsOn shadowJar
 
-//###############################################
-// FOR TEST ONLY - DO NOT FORGET TO REMOVE IT ###
-repositories {
-    jcenter()
+pluginBundle {
+  website = 'https://github.com/viewreka/viewreka-bundle-gradle-plugin'
+  vcsUrl = 'https://github.com/viewreka/viewreka-bundle-gradle-plugin'
+  description = 'A gradle plugin for creating Viewreka bundles (aka vbundles).'
+  tags = ['viewreka', 'vbundle']
 
-    flatDir {
-        name "fileRepo"
-        dirs "../viewreka/projects/bundles/repo"
+  plugins {
+    viewrekaBundle {
+      id = 'org.beryx.viewreka.bundle'
+      displayName = 'Viewreka bundle gradle plugin'
     }
-    maven {
-        name "myMavenRepo"
-        url uri("../viewreka/projects/bundles/mavenRepo")
-    }
+  }
 }
-
-uploadArchives {
-    repositories {
-        // add project.repositories.fileRepo
-        add project.repositories.myMavenRepo
-    }
-}
-//###############################################
 
 
 idea {
